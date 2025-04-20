@@ -1,0 +1,20 @@
+@keyframes flipCard {
+  0% {
+    transform: rotateY(0deg);
+  }
+  100% {
+    transform: rotateY(180deg);
+  }
+}
+
+.rotate-y-180 {
+  transform: rotateY(180deg);
+}
+
+.backface-visible-hidden {
+  backface-visibility: hidden;
+}
+
+.transform-gpu {
+  transform-style: preserve-3d;
+}
