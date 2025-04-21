@@ -13,7 +13,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUploaded }) => {
   const handleDrag = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (e.type === 'dragenter' || e.type === 'dragover') {
       setDragActive(true);
     } else if (e.type === 'dragleave') {
@@ -25,7 +25,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUploaded }) => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       handleFile(e.dataTransfer.files[0]);
     }
@@ -33,7 +33,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUploaded }) => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     e.preventDefault();
-    
+
     if (e.target.files && e.target.files[0]) {
       handleFile(e.target.files[0]);
     }
@@ -42,35 +42,30 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUploaded }) => {
   const handleFile = (file: File) => {
     setError(null);
     setSuccess(null);
-    
+
     const fileType = file.name.split('.').pop()?.toLowerCase();
-    
-    if (!fileType || !['csv', 'json', 'txt'].includes(fileType)) {
-      setError('Unsupported file format. Please upload a CSV, JSON, or TXT file.');
-      return;
-    }
-    
+
     const reader = new FileReader();
-    
+
     reader.onload = (event) => {
       try {
         const content = event.target?.result as string;
-        onFileUploaded(content, file.name, fileType);
+        onFileUploaded(content, file.name, fileType || '');
         setSuccess(`Successfully uploaded ${file.name}`);
       } catch (err) {
         setError('Failed to read file content.');
       }
     };
-    
+
     reader.onerror = () => {
       setError('Failed to read file.');
     };
-    
+
     reader.readAsText(file);
   };
 
   return (
-    <div 
+    <div
       className={`w-full p-8 border-2 border-dashed rounded-lg text-center transition-all duration-200 ${
         dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 bg-gray-50'
       }`}
@@ -84,26 +79,25 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUploaded }) => {
         Upload your data file
       </h3>
       <p className="mt-1 text-sm text-gray-500">
-        Drag and drop your CSV, JSON, or TXT file here, or click to browse
+        Drag and drop any file here, or click to browse
       </p>
-      
+
       <label className="mt-4 inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer transition-colors duration-200">
         Browse Files
         <input
           type="file"
           className="hidden"
-          accept=".csv,.json,.txt"
           onChange={handleChange}
         />
       </label>
-      
+
       {error && (
         <div className="mt-4 flex items-center justify-center text-red-600">
           <FileWarning className="mr-2 h-5 w-5" />
           <p>{error}</p>
         </div>
       )}
-      
+
       {success && (
         <div className="mt-4 flex items-center justify-center text-green-600">
           <FileCheck className="mr-2 h-5 w-5" />
