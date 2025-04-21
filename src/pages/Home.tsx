@@ -11,10 +11,9 @@ import { loadFlashcards, saveFlashcards, deleteFlashcard, updateFlashcard } from
 
 const Home: React.FC = () => {
   const [step, setStep] = useState<'empty' | 'upload' | 'preview' | 'list'>('empty');
-  const [fileData, setFileData] = useState<string>('');
   const [fileName, setFileName] = useState<string>('');
-  const [fileType, setFileType] = useState<string>('');
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
+  const [previewCards, setPreviewCards] = useState<{ question: string; answer: string }[]>([]);
   const [studyMode, setStudyMode] = useState<boolean>(false);
   const [editingCard, setEditingCard] = useState<Flashcard | null>(null);
 
@@ -26,11 +25,31 @@ const Home: React.FC = () => {
     }
   }, []);
 
-  const handleFileUploaded = (data: string, name: string, type: string) => {
-    setFileData(data);
-    setFileName(name);
-    setFileType(type);
-    setStep('preview');
+  const handleFileUploaded = async (data: string, name: string, type: string) => {
+    try {
+      const formData = new FormData();
+      const blob = new Blob([data], { type: 'application/octet-stream' });
+      formData.append('file', blob, name);
+
+      const response = await fetch('http://localhost:3001/upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      const result = await response.json();
+
+      if (!result.flashcards || result.flashcards.length === 0) {
+        alert('⚠️ No flashcards generated. Try another file.');
+        return;
+      }
+
+      setPreviewCards(result.flashcards);
+      setFileName(name);
+      setStep('preview');
+    } catch (error) {
+      console.error('Upload failed:', error);
+      alert('Something went wrong during upload.');
+    }
   };
 
   const handleDataMapped = (mappedData: Array<{ question: string; answer: string }>) => {
@@ -41,7 +60,7 @@ const Home: React.FC = () => {
       lastStudied: undefined,
       known: false
     }));
-    
+
     const updatedFlashcards = [...flashcards, ...newFlashcards];
     setFlashcards(updatedFlashcards);
     saveFlashcards(updatedFlashcards);
@@ -52,7 +71,7 @@ const Home: React.FC = () => {
     const updatedFlashcards = flashcards.filter(card => card.id !== id);
     setFlashcards(updatedFlashcards);
     deleteFlashcard(id);
-    
+
     if (updatedFlashcards.length === 0) {
       setStep('empty');
     }
@@ -66,19 +85,18 @@ const Home: React.FC = () => {
   };
 
   const handleSaveEdit = (updatedCard: Flashcard) => {
-    const updatedFlashcards = flashcards.map(card => 
+    const updatedFlashcards = flashcards.map(card =>
       card.id === updatedCard.id ? updatedCard : card
     );
-    
+
     setFlashcards(updatedFlashcards);
     updateFlashcard(updatedCard);
     setEditingCard(null);
   };
 
   const handleCreateNew = () => {
-    setFileData('');
     setFileName('');
-    setFileType('');
+    setPreviewCards([]);
     setStep('upload');
   };
 
@@ -87,26 +105,25 @@ const Home: React.FC = () => {
       {step === 'empty' && (
         <EmptyState onUploadClick={() => setStep('upload')} />
       )}
-      
+
       {step === 'upload' && (
         <div className="max-w-2xl mx-auto">
           <h1 className="text-3xl font-bold text-gray-900 mb-6 text-center">Upload Your Data</h1>
           <FileUpload onFileUploaded={handleFileUploaded} />
         </div>
       )}
-      
-      {step === 'preview' && fileData && (
+
+      {step === 'preview' && previewCards.length > 0 && (
         <div className="max-w-4xl mx-auto">
           <h1 className="text-3xl font-bold text-gray-900 mb-6">Configure Your Flashcards</h1>
-          <DataPreview 
-            data={fileData}
+          <DataPreview
+            flashcards={previewCards}
             fileName={fileName}
-            fileType={fileType}
             onDataMapped={handleDataMapped}
           />
         </div>
       )}
-      
+
       {step === 'list' && (
         <div className="max-w-4xl mx-auto">
           <div className="flex justify-between items-center mb-6">
@@ -118,8 +135,8 @@ const Home: React.FC = () => {
               Add More Cards
             </button>
           </div>
-          
-          <FlashcardList 
+
+          <FlashcardList
             flashcards={flashcards}
             onStartStudy={() => setStudyMode(true)}
             onDelete={handleDeleteFlashcard}
@@ -127,16 +144,16 @@ const Home: React.FC = () => {
           />
         </div>
       )}
-      
+
       {studyMode && (
-        <StudyMode 
+        <StudyMode
           flashcards={flashcards}
           onClose={() => setStudyMode(false)}
         />
       )}
-      
+
       {editingCard && (
-        <EditFlashcardModal 
+        <EditFlashcardModal
           flashcard={editingCard}
           onSave={handleSaveEdit}
           onCancel={() => setEditingCard(null)}
